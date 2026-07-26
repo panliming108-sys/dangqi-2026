@@ -564,7 +564,7 @@ function init(){
   if(suUrl&&suKey){
     badge('syncing');
     sSel('entries',{order:'date.desc'}).then(function(d){
-      if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.directChannels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}}
+      if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.direct_channels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}}
       d.forEach(function(r){if(r.id!=='settings')mgCloud(r);});
       procQ();done();
     }).catch(function(){badge('');document.getElementById('clSt').textContent='❌ 离线';setTimeout(done,150);});
@@ -1098,12 +1098,12 @@ function disSup(){
 }
 async function syncDown(){
   if(!suUrl)return;
-  try{var d=await sSel('entries',{order:'date.desc'});if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.directChannels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}d.forEach(function(r){if(r.id!=='settings')mgCloud(r);});}persist();if(ldOK){rdCal();if(listView){rdList();}}return true;}
+  try{var d=await sSel('entries',{order:'date.desc'});if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.direct_channels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}d.forEach(function(r){if(r.id!=='settings')mgCloud(r);});}persist();if(ldOK){rdCal();if(listView){rdList();}}return true;}
   catch(e){console.warn('syncDown:',e);return false;}
 }
 async function syncUp(){
   if(!suUrl)return;badge('syncing');
-  try{await sUps('settings',{id:'default',types:JSON.stringify(types),directChannels:JSON.stringify(directChannels),partners:JSON.stringify(partners)});}catch(e){}
+  try{await sUps('settings',{id:'default',types:JSON.stringify(types),direct_channels:JSON.stringify(directChannels),partners:JSON.stringify(partners)});}catch(e){}
   var ok=true;
   for(var i=0;i<entries.length;i++){try{await sUpsE(entries[i]);}catch(e){ok=false;if(offQ.indexOf(entries[i].id)<0)offQ.push(entries[i].id);}}
   lsS('offQ',offQ);
@@ -1114,7 +1114,7 @@ async function sUpsE(e){
     id:e.id,kind:e.kind,date:e.date,time:e.time||'',type:e.type||'',client:e.client||'',
     location:e.location||'',source:e.source||'',phone:e.phone||'',
     amount:e.amount||0,received:e.received||0,settled:e.settled||false,
-    notes:e.notes||'',expenses:e.expenses||[],eventTitle:e.eventTitle||'',unavReason:e.unavReason||'',status:e.status||'待确认'
+    notes:e.notes||'',expenses:e.expenses||[],event_title:e.eventTitle||'',unav_reason:e.unavReason||'',status:e.status||'待确认'
   });
   savedTS[e.id]=Date.now();
 }
@@ -1134,7 +1134,7 @@ function hdlRT(p){
   mgCloud(rec);sfRD();
 }
 function mgCloud(rec){
-  var inc={id:rec.id,kind:rec.kind||'order',date:rec.date,time:rec.time||'',type:rec.type||'',client:rec.client||'',location:rec.location||'',source:rec.source||'',phone:rec.phone||'',amount:rec.amount||0,received:rec.received||0,settled:rec.settled||false,notes:rec.notes||'',expenses:rec.expenses||[],eventTitle:rec.eventTitle||'',unavReason:rec.unavReason||'',status:rec.status||'待确认'};
+  var inc={id:rec.id,kind:rec.kind||'order',date:rec.date,time:rec.time||'',type:rec.type||'',client:rec.client||'',location:rec.location||'',source:rec.source||'',phone:rec.phone||'',amount:rec.amount||0,received:rec.received||0,settled:rec.settled||false,notes:rec.notes||'',expenses:rec.expenses||[],eventTitle:rec.event_title||'',unavReason:rec.unav_reason||'',status:rec.status||'待确认'};
   var ex=entries.find(function(e){return e.id===rec.id;});
   if(ex){Object.assign(ex,inc);}else{entries.push(inc);}
 }
@@ -1184,7 +1184,7 @@ function clJmp(){document.getElementById('jmpMo').classList.remove('op');}
 function rdTypList(){document.getElementById('typL').innerHTML=types.map(function(t,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'types\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'types\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(t.n)+'" onchange="types['+i+'].n=this.value;schSv()" /></div><button class="dl" onclick="rmTyp('+i+')">✕</button></div>';}).join('');}
 function rdDcList(){document.getElementById('dcL').innerHTML=directChannels.map(function(s,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'directChannels\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'directChannels\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(s)+'" onchange="directChannels['+i+']=this.value;schSv()" placeholder="渠道名称" /></div><button class="dl" onclick="rmDc('+i+')">✕</button></div>';}).join('');}
 function rdPtList(){document.getElementById('ptL').innerHTML=partners.map(function(s,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'partners\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'partners\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(s)+'" onchange="partners['+i+']=this.value;schSv()" placeholder="合作方名称" /></div><button class="dl" onclick="rmPt('+i+')">✕</button></div>';}).join('');}
-function schSv(){if(stTimer)clearTimeout(stTimer);stTimer=setTimeout(function(){persist();bcSnd('set-changed',{});toast('已保存','success');if(suUrl)sUps('settings',{id:'default',types:JSON.stringify(types),directChannels:JSON.stringify(directChannels),partners:JSON.stringify(partners)}).catch(function(){});},500);}
+function schSv(){if(stTimer)clearTimeout(stTimer);stTimer=setTimeout(function(){persist();bcSnd('set-changed',{});toast('已保存','success');if(suUrl)sUps('settings',{id:'default',types:JSON.stringify(types),direct_channels:JSON.stringify(directChannels),partners:JSON.stringify(partners)}).catch(function(){});},500);}
 function addTyp(){types.push({n:'新类型'});rdTypList();schSv();}
 function addDc(){directChannels.push('新渠道');rdDcList();schSv();}
 function addPt(){partners.push('新合作方');rdPtList();schSv();}
