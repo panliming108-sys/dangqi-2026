@@ -467,8 +467,6 @@ function lsD(k){try{localStorage.removeItem('ps_'+k);}catch(e){}}
 function persist(){
   lsS('entries',entries);lsS('types',types);lsS('directChannels',directChannels);lsS('partners',partners);lsS('su_url',suUrl);lsS('su_key',suKey);
   updateEmbeddedData();
-  // Auto-sync to Supabase when configured
-  if(suUrl&&suKey){syncUp().catch(function(){});}
 }
 function updateEmbeddedData(){
   var ed=document.getElementById('embeddedData');if(!ed)return;
@@ -568,7 +566,7 @@ function init(){
     sSel('entries',{order:'date.desc'}).then(function(d){
       if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.directChannels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}}
       d.forEach(function(r){if(r.id!=='settings')mgCloud(r);});
-      persist();procQ();
+      procQ();
     }).catch(function(){badge('');document.getElementById('clSt').textContent='❌ 离线';setTimeout(done,150);}).finally(function(){done();});
   }else{setTimeout(done,150);}
   function done(){document.getElementById('load').classList.add('hide');ldOK=true;rdCal();document.getElementById('clSt').textContent=suUrl?'':'配置 Supabase 后可跨设备同步';if(window.isStandalone){setTimeout(function(){toast('📥 文件模式：编辑后点 + → 保存备份到文件','info');},800);}setInterval(function(){if(suUrl&&offQ.length)procQ();},60000);}
@@ -1087,7 +1085,7 @@ function conSup(){
   badge('syncing');document.getElementById('clSt').textContent='连接中...';
   sSel('entries',{query:'limit=1'}).then(function(){
     badge('ok');document.getElementById('clSt').textContent='✅ 已连接';toast('云端连接成功','success');
-    setupRT();syncDown().then(function(){syncUp();});
+    setupRT();syncDown();
   }).catch(function(e){
     badge('error');document.getElementById('clSt').textContent='❌ 失败: '+e.message;toast('连接失败: '+e.message,'error');
   });
@@ -1100,7 +1098,7 @@ function disSup(){
 }
 async function syncDown(){
   if(!suUrl)return;
-  try{var d=await sSel('entries',{order:'date.desc'});if(d&&Array.isArray(d)){d.forEach(function(r){mgCloud(r);});persist();if(ldOK){rdCal();if(listView){rdList();}}}return true;}
+  try{var d=await sSel('entries',{order:'date.desc'});if(d&&Array.isArray(d)){var stData=d.find(function(r){return r.id==='settings';});if(stData){try{var td=JSON.parse(stData.types||'[]');if(td.length)types=td;}catch(e){}try{var dc=JSON.parse(stData.directChannels||'[]');if(dc.length)directChannels=dc;}catch(e){}try{var pt=JSON.parse(stData.partners||'[]');if(pt.length)partners=pt;}catch(e){}}d.forEach(function(r){if(r.id!=='settings')mgCloud(r);});}persist();if(ldOK){rdCal();if(listView){rdList();}}return true;}
   catch(e){console.warn('syncDown:',e);return false;}
 }
 async function syncUp(){
@@ -1134,10 +1132,10 @@ function setupRT(){
 }
 function hdlRT(p){
   var ev=p.eventType||p.event_type;
-  if(ev==='DELETE'){var oi=p.old?p.old.id:null;if(oi){entries=entries.filter(function(e){return e.id!==oi;});persist();sfRD();}return;}
+  if(ev==='DELETE'){var oi=p.old?p.old.id:null;if(oi){entries=entries.filter(function(e){return e.id!==oi;});sfRD();}return;}
   var rec=p.new;if(!rec||!rec.id)return;
   var ts=savedTS[rec.id];if(ts&&Date.now()-ts<6000)return;
-  mgCloud(rec);persist();sfRD();
+  mgCloud(rec);sfRD();
 }
 function mgCloud(rec){
   var inc={id:rec.id,kind:rec.kind||'order',date:rec.date,time:rec.time||'',type:rec.type||'',client:rec.client||'',location:rec.location||'',source:rec.source||'',phone:rec.phone||'',amount:rec.amount||0,received:rec.received||0,settled:rec.settled||false,notes:rec.notes||'',expenses:rec.expenses||[],eventTitle:rec.eventTitle||'',unavReason:rec.unavReason||'',status:rec.status||'待确认'};
@@ -1190,7 +1188,7 @@ function clJmp(){document.getElementById('jmpMo').classList.remove('op');}
 function rdTypList(){document.getElementById('typL').innerHTML=types.map(function(t,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'types\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'types\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(t.n)+'" onchange="types['+i+'].n=this.value;schSv()" /></div><button class="dl" onclick="rmTyp('+i+')">✕</button></div>';}).join('');}
 function rdDcList(){document.getElementById('dcL').innerHTML=directChannels.map(function(s,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'directChannels\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'directChannels\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(s)+'" onchange="directChannels['+i+']=this.value;schSv()" placeholder="渠道名称" /></div><button class="dl" onclick="rmDc('+i+')">✕</button></div>';}).join('');}
 function rdPtList(){document.getElementById('ptL').innerHTML=partners.map(function(s,i){return '<div class="si" draggable="true" ondragstart="dStart(event,\'partners\','+i+')" ondragover="dOver(event,'+i+')" ondrop="dDrop(event,\'partners\','+i+')" ondragend="dEnd(event)"><button class="drag-h">☰</button><div class="ip"><input type="text" value="'+esc(s)+'" onchange="partners['+i+']=this.value;schSv()" placeholder="合作方名称" /></div><button class="dl" onclick="rmPt('+i+')">✕</button></div>';}).join('');}
-function schSv(){if(stTimer)clearTimeout(stTimer);stTimer=setTimeout(function(){persist();bcSnd('set-changed',{});toast('已保存','success');},500);}
+function schSv(){if(stTimer)clearTimeout(stTimer);stTimer=setTimeout(function(){persist();bcSnd('set-changed',{});toast('已保存','success');if(suUrl)sUps('settings',{id:'default',types:JSON.stringify(types),directChannels:JSON.stringify(directChannels),partners:JSON.stringify(partners)}).catch(function(){});},500);}
 function addTyp(){types.push({n:'新类型'});rdTypList();schSv();}
 function addDc(){directChannels.push('新渠道');rdDcList();schSv();}
 function addPt(){partners.push('新合作方');rdPtList();schSv();}
